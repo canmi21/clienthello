@@ -14,11 +14,12 @@ repository = "https://github.com/canmi21/clienthello.git"
 all-features = true
 
 [dependencies]
-thiserror = "2"
+thiserror = { version = "2", default-features = false }
 
 [features]
-default = []
-full = []
+default = ["std"]
+std = ["thiserror/std"]
+full = ["std"]
 
 [dev-dependencies]
 hex = "0.4"
