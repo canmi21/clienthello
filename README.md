@@ -1,48 +1,36 @@
-# Sigterm
+# ClientHello
 
-Signal-aware async control and cancellation primitives for Tokio.
+Zero-copy TLS ClientHello parser. Works with both TLS record and raw handshake input.
 
-`sigterm` abstracts away the boilerplate of listening for system signals (`Ctrl+C`, `SIGTERM`, etc.) and coordinating shutdown across multiple asynchronous tasks.
+`clienthello` parses TLS ClientHello messages without external parser dependencies, extracting SNI, ALPN, cipher suites, supported versions, key shares, and other extensions from raw bytes.
 
 ## Features
 
-- **Signal Waiting**: Wait for `Ctrl+C` or `SIGTERM` across platforms with a single `await`. Use `try_wait()` for non-panicking version.
-- **Cancellation Tokens**: Hierarchy-based cancellation (parent cancels child) powered by `tokio-util`.
-- **Shutdown Primitives**:
-  - `Shutdown`: One-shot channel for single-task termination.
-  - `Broadcast`: Notify multiple subscribers of a shutdown event.
-  - `ShutdownGuard`: RAII guard that triggers shutdown when dropped (useful for panics).
-- **Framework Integration**: `shutdown_signal()` helper designed for seamless integration with `axum::serve`.
-- **Unix Extensions**: Listen for custom signal sets (`SIGHUP`, `SIGQUIT`, etc.) on Unix systems.
+- **Dual Input Formats**: Parse standard TLS records (`0x16` prefix) or raw handshake messages (`0x01` prefix, QUIC CRYPTO).
+- **Zero-Copy**: Borrows directly from the input buffer wherever possible.
+- **GREASE Filtering**: Automatically detects and filters RFC 8701 GREASE values from cipher suites, versions, groups, and key shares.
+- **Structured Extensions**: SNI, ALPN, Supported Versions, Supported Groups, Signature Algorithms, Key Share, PSK Exchange Modes, and Renegotiation Info are parsed into typed variants.
+- **`no_std` + `alloc`**: Works in `no_std` environments with an allocator.
 
 ## Usage Examples
 
 Check the `examples` directory for runnable code:
 
-- **Basic Usage**: [`examples/simple.rs`](examples/simple.rs) - Wait for a simple shutdown signal.
-- **Server Integration**: [`examples/shutdown_signal.rs`](examples/shutdown_signal.rs) - Combine system signals with internal cancellation (e.g., for Axum).
-- **Task Orchestration**: [`examples/broadcast.rs`](examples/broadcast.rs) - Coordinate multiple workers.
-- **Hierarchical Cancellation**: [`examples/cancellation.rs`](examples/cancellation.rs) - Manage tree-structured tasks.
-- **Scope Guard**: [`examples/guard.rs`](examples/guard.rs) - Ensure shutdown on exit or panic.
+- **Record Layer**: [`examples/parse_record.rs`](examples/parse_record.rs) - Parse a full TLS record and print all fields.
+- **QUIC SNI**: [`examples/quic_sni.rs`](examples/quic_sni.rs) - Extract SNI from a raw handshake message.
 
 ## Installation
 
 ```toml
 [dependencies]
-sigterm = { version = "0.3", features = ["full"] }
+clienthello = { version = "0.1", features = ["full"] }
 ```
 
 ## Feature Flags
 
 | Feature | Description |
 |---------|-------------|
-| `signal` | Enables signal handling (Ctrl+C, SIGTERM) - enabled by default. |
-| `sync` | Enables synchronization primitives (`Shutdown`, `Broadcast`). |
-| `macros` | Enables Tokio macro support. |
-| `rt` | Enables Tokio runtime support (required for `wait_for`). |
-| `cancel` | Enables hierarchical cancellation tokens via `tokio-util`. |
-| `time` | Enables timeout support for signal waiting. |
-| `tracing` | Enables optional tracing instrumentation for debugging. |
+| `std` | Enables standard library support. |
 | `full` | Enables all features above. |
 
 ## License
