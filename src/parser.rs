@@ -120,6 +120,11 @@ fn parse_body<'a>(data: &'a [u8]) -> Result<ClientHello<'a>, Error> {
 
 fn parse_cipher_suites(r: &mut Reader<'_>, has_grease: &mut bool) -> Result<Vec<u16>, Error> {
 	let len = r.read_u16("cipher suites length")? as usize;
+	if !len.is_multiple_of(2) {
+		return Err(Error::Truncated {
+			field: "cipher suites (odd length)",
+		});
+	}
 	let cs_data = r.read_bytes(len, "cipher suites data")?;
 	let mut inner = Reader::new(cs_data);
 	let mut suites = Vec::new();

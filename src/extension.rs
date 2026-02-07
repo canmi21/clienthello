@@ -90,6 +90,11 @@ fn parse_groups<'a>(data: &'a [u8], has_grease: &mut bool) -> Result<Extension<'
 fn parse_sig_algs(data: &[u8]) -> Result<Extension<'_>, Error> {
 	let mut r = Reader::new(data);
 	let list_len = r.read_u16("signature algorithms length")? as usize;
+	if !list_len.is_multiple_of(2) {
+		return Err(Error::Truncated {
+			field: "signature algorithms (odd length)",
+		});
+	}
 	let list_data = r.read_bytes(list_len, "signature algorithms data")?;
 	let mut inner = Reader::new(list_data);
 	let mut algs = Vec::new();
@@ -120,6 +125,11 @@ fn parse_supported_versions<'a>(
 	let mut r = Reader::new(data);
 	// RFC 8446 §4.2.1: length is a single byte (unlike most TLS length fields).
 	let list_len = r.read_u8("supported versions length")? as usize;
+	if !list_len.is_multiple_of(2) {
+		return Err(Error::Truncated {
+			field: "supported versions (odd length)",
+		});
+	}
 	let list_data = r.read_bytes(list_len, "supported versions data")?;
 	let mut inner = Reader::new(list_data);
 	let mut versions = Vec::new();
@@ -163,6 +173,11 @@ fn parse_key_share<'a>(data: &'a [u8], has_grease: &mut bool) -> Result<Extensio
 fn parse_u16_list_filtered(data: &[u8], has_grease: &mut bool) -> Result<Vec<u16>, Error> {
 	let mut r = Reader::new(data);
 	let list_len = r.read_u16("u16 list length")? as usize;
+	if !list_len.is_multiple_of(2) {
+		return Err(Error::Truncated {
+			field: "u16 list (odd length)",
+		});
+	}
 	let list_data = r.read_bytes(list_len, "u16 list data")?;
 	let mut inner = Reader::new(list_data);
 	let mut values = Vec::new();
