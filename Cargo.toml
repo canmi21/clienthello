@@ -1,10 +1,10 @@
 [package]
 name = "clienthello"
 license = "MIT"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 rust-version = "1.93"
-categories = ["network-programming", "parser-implementations"]
+categories = ["network-programming", "parser-implementations", "no-std"]
 description = "Zero-copy TLS ClientHello parser. Works with both TLS record and raw handshake input."
 keywords = ["tls", "clienthello", "sni", "parser", "handshake"]
 readme = "README.md"
