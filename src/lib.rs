@@ -64,57 +64,57 @@ impl<'a> ClientHello<'a> {
 
 	/// Collect all ALPN protocol identifiers.
 	#[must_use]
-	pub fn alpn_protocols(&self) -> Vec<&[u8]> {
+	pub fn alpn_protocols(&self) -> &[&[u8]] {
 		for ext in &self.extensions {
 			if let Extension::Alpn(protos) = ext {
-				return protos.clone();
+				return protos;
 			}
 		}
-		Vec::new()
+		&[]
 	}
 
 	/// Return supported TLS versions (GREASE values already excluded).
 	#[must_use]
-	pub fn supported_versions(&self) -> Vec<u16> {
+	pub fn supported_versions(&self) -> &[u16] {
 		for ext in &self.extensions {
 			if let Extension::SupportedVersions(v) = ext {
-				return v.clone();
+				return v;
 			}
 		}
-		Vec::new()
+		&[]
 	}
 
 	/// Return supported groups / named curves (GREASE values already excluded).
 	#[must_use]
-	pub fn supported_groups(&self) -> Vec<u16> {
+	pub fn supported_groups(&self) -> &[u16] {
 		for ext in &self.extensions {
 			if let Extension::SupportedGroups(v) = ext {
-				return v.clone();
+				return v;
 			}
 		}
-		Vec::new()
+		&[]
 	}
 
 	/// Return signature algorithm identifiers.
 	#[must_use]
-	pub fn signature_algorithms(&self) -> Vec<u16> {
+	pub fn signature_algorithms(&self) -> &[u16] {
 		for ext in &self.extensions {
 			if let Extension::SignatureAlgorithms(v) = ext {
-				return v.clone();
+				return v;
 			}
 		}
-		Vec::new()
+		&[]
 	}
 
 	/// Return key-share group identifiers (GREASE values already excluded).
 	#[must_use]
-	pub fn key_share_groups(&self) -> Vec<u16> {
+	pub fn key_share_groups(&self) -> &[u16] {
 		for ext in &self.extensions {
 			if let Extension::KeyShareGroups(v) = ext {
-				return v.clone();
+				return v;
 			}
 		}
-		Vec::new()
+		&[]
 	}
 
 	/// Check whether a renegotiation info extension is present.

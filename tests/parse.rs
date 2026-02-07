@@ -145,7 +145,7 @@ fn grease_filtered_from_cipher_suites() {
 fn grease_filtered_from_versions() {
 	let data = helpers::full_raw();
 	let hello = parse(&data).unwrap();
-	for &v in &hello.supported_versions() {
+	for &v in hello.supported_versions() {
 		assert!(
 			!is_grease(v),
 			"GREASE value {v:#06x} leaked into supported_versions"
@@ -157,7 +157,7 @@ fn grease_filtered_from_versions() {
 fn grease_filtered_from_key_share() {
 	let data = helpers::full_raw();
 	let hello = parse(&data).unwrap();
-	for &g in &hello.key_share_groups() {
+	for &g in hello.key_share_groups() {
 		assert!(
 			!is_grease(g),
 			"GREASE value {g:#06x} leaked into key_share_groups"
@@ -223,15 +223,15 @@ fn full_session_id() {
 fn psk_exchange_modes() {
 	let data = helpers::full_raw();
 	let hello = parse(&data).unwrap();
-	let modes: Vec<u8> = hello
+	let modes: &[u8] = hello
 		.extensions
 		.iter()
 		.find_map(|ext| match ext {
-			Extension::PskExchangeModes(m) => Some(m.clone()),
+			Extension::PskExchangeModes(m) => Some(*m),
 			_ => None,
 		})
 		.unwrap_or_default();
-	assert_eq!(modes, vec![0x01]);
+	assert_eq!(modes, [0x01]);
 }
 
 #[test]

@@ -23,7 +23,7 @@ pub enum Extension<'a> {
 	/// Key Share entry groups (type `0x0033`), GREASE values excluded.
 	KeyShareGroups(Vec<u16>),
 	/// PSK Key Exchange Modes (type `0x002d`).
-	PskExchangeModes(Vec<u8>),
+	PskExchangeModes(&'a [u8]),
 	/// Renegotiation Info (type `0xff01`).
 	RenegotiationInfo(&'a [u8]),
 	/// Unknown or unhandled extension preserved as raw bytes.
@@ -118,6 +118,7 @@ fn parse_supported_versions<'a>(
 	has_grease: &mut bool,
 ) -> Result<Extension<'a>, Error> {
 	let mut r = Reader::new(data);
+	// RFC 8446 §4.2.1: length is a single byte (unlike most TLS length fields).
 	let list_len = r.read_u8("supported versions length")? as usize;
 	let list_data = r.read_bytes(list_len, "supported versions data")?;
 	let mut inner = Reader::new(list_data);
@@ -137,7 +138,7 @@ fn parse_psk_modes(data: &[u8]) -> Result<Extension<'_>, Error> {
 	let mut r = Reader::new(data);
 	let list_len = r.read_u8("PSK modes length")? as usize;
 	let list_data = r.read_bytes(list_len, "PSK modes data")?;
-	Ok(Extension::PskExchangeModes(list_data.to_vec()))
+	Ok(Extension::PskExchangeModes(list_data))
 }
 
 fn parse_key_share<'a>(data: &'a [u8], has_grease: &mut bool) -> Result<Extension<'a>, Error> {
