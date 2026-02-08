@@ -1,19 +1,28 @@
 /* tests/helpers/mod.rs */
 
 pub(crate) fn minimal_raw() -> Vec<u8> {
+	wrap_handshake(&minimal_body())
+}
+
+/// Build a minimal ClientHello body (no handshake header).
+pub(crate) fn minimal_body() -> Vec<u8> {
 	let mut body = Vec::new();
 	body.extend_from_slice(&[0x03, 0x03]); // legacy version
 	body.extend_from_slice(&[0u8; 32]); // random
 	body.push(0x00); // session ID length
 	body.extend_from_slice(&[0x00, 0x02, 0x13, 0x01]); // cipher suites
 	body.extend_from_slice(&[0x01, 0x00]); // compression
+	body
+}
 
+/// Wrap a ClientHello body in a handshake header (type 0x01 + 3-byte length).
+pub(crate) fn wrap_handshake(body: &[u8]) -> Vec<u8> {
 	let mut msg = vec![0x01]; // handshake type
 	let len = body.len() as u32;
 	msg.push((len >> 16) as u8);
 	msg.push((len >> 8) as u8);
 	msg.push(len as u8);
-	msg.extend_from_slice(&body);
+	msg.extend_from_slice(body);
 	msg
 }
 
@@ -25,6 +34,84 @@ pub(crate) fn wrap_record(handshake: &[u8]) -> Vec<u8> {
 	rec.push(len as u8);
 	rec.extend_from_slice(handshake);
 	rec
+}
+
+/// Build a raw handshake message from a minimal body with custom extensions.
+pub(crate) fn raw_with_extensions(ext_bytes: &[u8]) -> Vec<u8> {
+	let mut body = minimal_body();
+	push_u16(&mut body, ext_bytes.len() as u16);
+	body.extend_from_slice(ext_bytes);
+	wrap_handshake(&body)
+}
+
+/// Build a single TLS extension: type_id (u16) + length (u16) + data.
+pub(crate) fn build_ext(type_id: u16, data: &[u8]) -> Vec<u8> {
+	let mut ext = Vec::new();
+	push_u16(&mut ext, type_id);
+	push_u16(&mut ext, data.len() as u16);
+	ext.extend_from_slice(data);
+	ext
+}
+
+/// Build SNI extension body from (name_type, name) pairs.
+pub(crate) fn build_sni_body(entries: &[(u8, &[u8])]) -> Vec<u8> {
+	let mut list = Vec::new();
+	for &(name_type, name) in entries {
+		list.push(name_type);
+		push_u16(&mut list, name.len() as u16);
+		list.extend_from_slice(name);
+	}
+	let mut body = Vec::new();
+	push_u16(&mut body, list.len() as u16);
+	body.extend_from_slice(&list);
+	body
+}
+
+/// Build ALPN extension body from protocol byte slices.
+pub(crate) fn build_alpn_body(protocols: &[&[u8]]) -> Vec<u8> {
+	let mut list = Vec::new();
+	for proto in protocols {
+		list.push(proto.len() as u8);
+		list.extend_from_slice(proto);
+	}
+	let mut body = Vec::new();
+	push_u16(&mut body, list.len() as u16);
+	body.extend_from_slice(&list);
+	body
+}
+
+/// Build supported versions extension body (u8 length prefix per RFC 8446).
+pub(crate) fn build_supported_versions_body(versions: &[u16]) -> Vec<u8> {
+	let mut body = Vec::new();
+	body.push((versions.len() * 2) as u8);
+	for &v in versions {
+		push_u16(&mut body, v);
+	}
+	body
+}
+
+/// Build key share extension body from (group, key_data) pairs.
+pub(crate) fn build_key_share_body(entries: &[(u16, &[u8])]) -> Vec<u8> {
+	let mut list = Vec::new();
+	for &(group, key) in entries {
+		push_u16(&mut list, group);
+		push_u16(&mut list, key.len() as u16);
+		list.extend_from_slice(key);
+	}
+	let mut body = Vec::new();
+	push_u16(&mut body, list.len() as u16);
+	body.extend_from_slice(&list);
+	body
+}
+
+/// Build a u16-list extension body with a u16 length prefix.
+pub(crate) fn build_u16_list_body(values: &[u16]) -> Vec<u8> {
+	let mut body = Vec::new();
+	push_u16(&mut body, (values.len() * 2) as u16);
+	for &v in values {
+		push_u16(&mut body, v);
+	}
+	body
 }
 
 /// Build a raw ClientHello with common extensions.
@@ -138,7 +225,7 @@ fn push_ext_header(buf: &mut Vec<u8>, type_id: u16, data_len: usize) {
 	push_u16(buf, data_len as u16);
 }
 
-fn push_u16(buf: &mut Vec<u8>, val: u16) {
+pub(crate) fn push_u16(buf: &mut Vec<u8>, val: u16) {
 	buf.push((val >> 8) as u8);
 	buf.push(val as u8);
 }
