@@ -151,6 +151,10 @@ fn parse_extensions<'a>(
 		let type_id = inner.read_u16("extension type")?;
 		let ext_len = inner.read_u16("extension length")? as usize;
 		let ext_body = inner.read_bytes(ext_len, "extension body")?;
+		if is_grease(type_id) {
+			*has_grease = true;
+			continue;
+		}
 		extensions.push(parse_extension(type_id, ext_body, has_grease)?);
 	}
 	Ok(extensions)

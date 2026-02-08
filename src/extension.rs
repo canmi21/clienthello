@@ -18,7 +18,7 @@ pub enum Extension<'a> {
 	SupportedVersions(Vec<u16>),
 	/// Supported Groups / Named Curves (type `0x000a`), GREASE values excluded.
 	SupportedGroups(Vec<u16>),
-	/// Signature Algorithms (type `0x000d`).
+	/// Signature Algorithms (type `0x000d`), GREASE values excluded.
 	SignatureAlgorithms(Vec<u16>),
 	/// Key Share entry groups (type `0x0033`), GREASE values excluded.
 	KeyShareGroups(Vec<u16>),
@@ -49,19 +49,15 @@ pub(crate) fn parse_extension<'a>(
 	data: &'a [u8],
 	has_grease: &mut bool,
 ) -> Result<Extension<'a>, Error> {
-	if is_grease(type_id) {
-		*has_grease = true;
-		return Ok(Extension::Unknown { type_id, data });
-	}
 	match type_id {
 		0x0000 => parse_sni(data),
 		0x000a => parse_groups(data, has_grease),
-		0x000d => parse_sig_algs(data),
+		0x000d => parse_sig_algs(data, has_grease),
 		0x0010 => parse_alpn(data),
 		0x002b => parse_supported_versions(data, has_grease),
 		0x002d => parse_psk_modes(data),
 		0x0033 => parse_key_share(data, has_grease),
-		0xff01 => Ok(Extension::RenegotiationInfo(data)),
+		0xff01 => parse_renegotiation_info(data),
 		_ => Ok(Extension::Unknown { type_id, data }),
 	}
 }
@@ -87,7 +83,7 @@ fn parse_groups<'a>(data: &'a [u8], has_grease: &mut bool) -> Result<Extension<'
 	)?))
 }
 
-fn parse_sig_algs(data: &[u8]) -> Result<Extension<'_>, Error> {
+fn parse_sig_algs<'a>(data: &'a [u8], has_grease: &mut bool) -> Result<Extension<'a>, Error> {
 	let mut r = Reader::new(data);
 	let list_len = r.read_u16("signature algorithms length")? as usize;
 	if !list_len.is_multiple_of(2) {
@@ -99,7 +95,12 @@ fn parse_sig_algs(data: &[u8]) -> Result<Extension<'_>, Error> {
 	let mut inner = Reader::new(list_data);
 	let mut algs = Vec::new();
 	while inner.remaining() >= 2 {
-		algs.push(inner.read_u16("signature algorithm")?);
+		let val = inner.read_u16("signature algorithm")?;
+		if is_grease(val) {
+			*has_grease = true;
+		} else {
+			algs.push(val);
+		}
 	}
 	Ok(Extension::SignatureAlgorithms(algs))
 }
@@ -149,6 +150,13 @@ fn parse_psk_modes(data: &[u8]) -> Result<Extension<'_>, Error> {
 	let list_len = r.read_u8("PSK modes length")? as usize;
 	let list_data = r.read_bytes(list_len, "PSK modes data")?;
 	Ok(Extension::PskExchangeModes(list_data))
+}
+
+fn parse_renegotiation_info(data: &[u8]) -> Result<Extension<'_>, Error> {
+	let mut r = Reader::new(data);
+	let info_len = r.read_u8("renegotiation info length")? as usize;
+	let info_data = r.read_bytes(info_len, "renegotiation info data")?;
+	Ok(Extension::RenegotiationInfo(info_data))
 }
 
 fn parse_key_share<'a>(data: &'a [u8], has_grease: &mut bool) -> Result<Extension<'a>, Error> {

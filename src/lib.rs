@@ -134,6 +134,7 @@ impl<'a> ClientHello<'a> {
 	#[must_use]
 	pub fn find_extension(&self, type_id: u16) -> Option<&[u8]> {
 		self.extensions.iter().find_map(|ext| match ext {
+			Extension::PskExchangeModes(data) if type_id == 0x002D => Some(*data),
 			Extension::RenegotiationInfo(data) if type_id == 0xFF01 => Some(*data),
 			Extension::Unknown { type_id: id, data } if *id == type_id => Some(*data),
 			_ => None,

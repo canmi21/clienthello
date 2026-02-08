@@ -27,11 +27,4 @@ pub enum Error {
 		/// Name of the truncated field.
 		field: &'static str,
 	},
-
-	/// An extension body could not be parsed.
-	#[error("invalid extension at type {type_id:#06x}")]
-	InvalidExtension {
-		/// TLS extension type identifier.
-		type_id: u16,
-	},
 }

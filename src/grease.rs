@@ -2,7 +2,7 @@
 
 /// Check whether a `u16` value is a GREASE value defined in RFC 8701.
 ///
-/// GREASE values satisfy `(value & 0x0F0F) == 0x0A0A`, producing the set
+/// GREASE values have identical high and low bytes matching `0x_A`, producing the set
 /// `{0x0A0A, 0x1A1A, 0x2A2A, ..., 0xFAFA}`.
 ///
 /// ```
@@ -12,7 +12,7 @@
 /// ```
 #[must_use]
 pub fn is_grease(value: u16) -> bool {
-	(value & 0x0F0F) == 0x0A0A
+	(value & 0x0F0F) == 0x0A0A && (value >> 8) == (value & 0xFF)
 }
 
 #[cfg(test)]
@@ -34,5 +34,16 @@ mod tests {
 		assert!(!is_grease(0x1301));
 		assert!(!is_grease(0x0017));
 		assert!(!is_grease(0xFFFF));
+	}
+
+	#[test]
+	fn mixed_nibbles_are_not_grease() {
+		// Values where low nibbles are both 0xA but high nibbles differ
+		// are NOT valid GREASE values per RFC 8701.
+		assert!(!is_grease(0x0A1A));
+		assert!(!is_grease(0x1A0A));
+		assert!(!is_grease(0x2A5A));
+		assert!(!is_grease(0x3AFA));
+		assert!(!is_grease(0xFA0A));
 	}
 }

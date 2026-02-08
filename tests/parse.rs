@@ -248,5 +248,7 @@ fn find_renegotiation_info_raw() {
 	let data = helpers::full_raw();
 	let hello = parse(&data).unwrap();
 	let raw = hello.find_extension(0xFF01);
-	assert_eq!(raw, Some([0x00].as_slice()));
+	// After parsing, RenegotiationInfo stores the renegotiated_connection
+	// bytes (with the length prefix stripped), which is empty here.
+	assert_eq!(raw, Some([].as_slice()));
 }
